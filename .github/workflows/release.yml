@@ -38,6 +38,9 @@ jobs:
           - goos: windows
             goarch: amd64
             runner: windows-2022
+          - goos: windows
+            goarch: arm64
+            runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
@@ -47,11 +50,11 @@ jobs:
         run: git clone --depth 1 https://github.com/gosuda/HQQ.git ../HQQ
 
       - name: Install build tools (Linux)
-        if: matrix.goos == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ninja-build
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ninja-build xz-utils
 
       - name: Set up MSVC developer environment (Windows)
-        if: matrix.goos == 'windows'
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
@@ -73,12 +76,28 @@ jobs:
         run: |
           set -euo pipefail
           tmp_dir="$RUNNER_TEMP"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
+          if [ "${{ runner.os }}" = "Windows" ]; then
             tmp_dir=$(cygpath -u "$RUNNER_TEMP")
           fi
           zdir=$(scripts/release/fetch-zstd.sh -d "$tmp_dir/zstd-src")
           bdir="$tmp_dir/hqq-zstd-build"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
+          if [ "${{ matrix.goos }}" = "windows" ] && [ "${{ matrix.goarch }}" = "arm64" ]; then
+            mkdir -p "$tmp_dir/zig"
+            curl -fsSL https://ziglang.org/download/0.14.0/zig-linux-x86_64-0.14.0.tar.xz | tar -xJ -C "$tmp_dir/zig" --strip-components=1
+            printf '#!/bin/sh\nexec "%s/zig/zig" cc -target aarch64-windows-gnu "$@"\n' "$tmp_dir" > "$tmp_dir/zig-cc"
+            printf '#!/bin/sh\nexec "%s/zig/zig" ar "$@"\n' "$tmp_dir" > "$tmp_dir/zig-ar"
+            printf '#!/bin/sh\nexec "%s/zig/zig" ranlib "$@"\n' "$tmp_dir" > "$tmp_dir/zig-ranlib"
+            chmod +x "$tmp_dir/zig-cc" "$tmp_dir/zig-ar" "$tmp_dir/zig-ranlib"
+            cmake -S server -B "$bdir" -G Ninja \
+              -DCMAKE_SYSTEM_NAME=Windows \
+              -DCMAKE_SYSTEM_PROCESSOR=ARM64 \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_COMPILER="$tmp_dir/zig-cc" \
+              -DCMAKE_AR="$tmp_dir/zig-ar" \
+              -DCMAKE_RANLIB="$tmp_dir/zig-ranlib" \
+              -DCMAKE_EXE_LINKER_FLAGS="-s" \
+              -DHQQ_ZSTD_DIR="$zdir"
+          elif [ "${{ matrix.goos }}" = "windows" ]; then
             zdir=$(cygpath -m "$zdir")
             bdir=$(cygpath -m "$bdir")
             cmake -S server -B "$bdir" -G Ninja \
@@ -197,11 +216,13 @@ jobs:
           gofmt -w hashes.go
           cat hashes.go
 
-          if [ "$GITHUB_REF_TYPE" != "tag" ] && ! git diff --quiet hashes.go; then
+          mkdir -p internal/embedded/bin
+          cp dist/zstd_server_* internal/embedded/bin/
+          git add hashes.go internal/embedded/bin/
+          if [ "$GITHUB_REF_TYPE" != "tag" ] && ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add hashes.go
-            git commit -m "chore(release): pin binary digests for ${tag}"
+            git commit -m "chore(release): pin embedded binaries and digests for ${tag}"
             git push origin HEAD:main
           fi
 
@@ -212,6 +233,10 @@ jobs:
         run: |
           set -euo pipefail
           target=$(git rev-parse HEAD)
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            git tag -f "$TAG" "$target"
+            git push origin -f "refs/tags/$TAG"
+          fi
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
           else

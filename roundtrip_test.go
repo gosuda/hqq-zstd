@@ -2,6 +2,7 @@ package zstd_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -241,3 +242,29 @@ func TestSmallFramesAndFewBuffers(t *testing.T) {
 		}
 	}
 }
+
+func TestZeroConfigAutoLaunch(t *testing.T) {
+	src := textData(32_768, 999)
+	compressed, err := zstd.Compress(nil, src, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := zstd.Decompress(nil, compressed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(restored, src) {
+		t.Fatalf("restored %d bytes != src %d bytes", len(restored), len(src))
+	}
+
+	cl, err := zstd.Open(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl.Close()
+	ver, err := cl.VersionNumber()
+	if err != nil || ver != zstd.ZstdVersionNumber {
+		t.Fatalf("VersionNumber = %d, %v; want %d", ver, err, zstd.ZstdVersionNumber)
+	}
+}
+

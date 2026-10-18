@@ -29,7 +29,7 @@ var shared *launch.Server
 func TestMain(m *testing.M) {
 	code := 1
 	defer func() { os.Exit(code) }()
-	if os.Getenv(serverEnv) != "" {
+	if _, _, err := zstd.ServerBinary(); err == nil {
 		srv, err := startServer()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "zstd tests: start shared server:", err)
@@ -77,10 +77,16 @@ func startServer(args ...string) (*launch.Server, error) {
 // startServerTo is startServer with the stderr of the server and extra environment variables, which
 // are added to the environment of this process.
 func startServerTo(stderr io.Writer, env []string, args ...string) (*launch.Server, error) {
-	bin := os.Getenv(serverEnv)
-	sum, _, err := secureexec.HashFile(bin)
+	bin, sum, err := zstd.ServerBinary()
 	if err != nil {
-		return nil, fmt.Errorf("hash %s: %w", bin, err)
+		return nil, err
+	}
+	if p := os.Getenv(serverEnv); p != "" {
+		bin = p
+		sum, _, err = secureexec.HashFile(bin)
+		if err != nil {
+			return nil, fmt.Errorf("hash %s: %w", bin, err)
+		}
 	}
 	name, err := launch.NewListenerName("zst")
 	if err != nil {

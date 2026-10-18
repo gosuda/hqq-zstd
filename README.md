@@ -2,71 +2,47 @@
 
 `gosuda.org/hqq-zstd` is a **zero-`cgo` (`CGO_ENABLED=0`) Zstandard (`libzstd`) library for Go** powered by HQQ shared-memory IPC. Your Go binary compiles without linking C objects, while executing the official C `libzstd` (`1.5.7`) compressor and decompressor in an isolated shared-memory worker process (`zstd_server`).
 
+SLSA-attested prebuilt `zstd_server` binaries are embedded per target platform (`//go:build` + `//go:embed`), extracted to the user cache on first use, verified against pinned SHA-256 digests via `gosuda.org/hqq/secureexec`, and bound to the Go parent process lifetime via `--parent-stdin`. No external binary download or C toolchain is required.
+
 ```bash
 go get gosuda.org/hqq-zstd
 ```
 
 ## Supported Platforms
 
-| OS | Architectures | Prebuilt `zstd_server` Release Asset |
+| OS | Architectures | Embedded & SLSA-Attested Release Binary |
 | :--- | :--- | :--- |
-| **Linux** | `amd64`, `arm64` | `zstd_server_linux_amd64`, `zstd_server_linux_arm64` |
-| **macOS** | `arm64` (Apple Silicon), `amd64` | `zstd_server_darwin_arm64`, `zstd_server_darwin_amd64` |
-| **Windows** | `amd64`, `arm64` | `zstd_server_windows_amd64.exe` (`arm64` via source build) |
+| **Linux** | `amd64`, `arm64` | `zstd_server_linux_amd64`, `zstd_server_linux_arm64` (embedded) |
+| **macOS** | `arm64` (Apple Silicon), `amd64` | `zstd_server_darwin_arm64`, `zstd_server_darwin_amd64` (embedded) |
+| **Windows** | `amd64`, `arm64` | `zstd_server_windows_amd64.exe`, `zstd_server_windows_arm64.exe` (embedded) |
 
 ---
 
 ## Quickstart
 
-### 1. One-Shot Compression and Decompression
+### 1. Zero-Config Compression and Decompression
 
-Start `zstd_server` via `gosuda.org/hqq/launch` and connect with `zstd.Dial`:
+Call top-level `zstd.Compress` and `zstd.Decompress` (or `zstd.Open(ctx)` for a dedicated session) immediately after importing `gosuda.org/hqq-zstd`:
 
 ```go
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"runtime"
 
 	"gosuda.org/hqq-zstd"
-	"gosuda.org/hqq/launch"
 )
 
 func main() {
-	ctx := context.Background()
-
-	hash, ok := zstd.ExpectedHash(runtime.GOOS, runtime.GOARCH)
-	if !ok {
-		log.Fatalf("no pinned digest for %s/%s", runtime.GOOS, runtime.GOARCH)
-	}
-
-	srv, err := launch.Start(ctx, launch.Config{
-		Binary: "/opt/hqq/bin/zstd_server",
-		SHA256: hash,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer srv.Close()
-
-	client, err := zstd.Dial(ctx, srv.Listener(), zstd.DefaultOptions())
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
-
 	src := []byte("zero-cgo Zstandard over HQQ shared memory")
-	dst := make([]byte, zstd.CompressBound(uint64(len(src))))
 
-	compressed, err := client.Compress(dst, src, 3)
+	compressed, err := zstd.Compress(nil, src, 3)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	restored, err := client.Decompress(make([]byte, len(src)), compressed)
+	restored, err := zstd.Decompress(nil, compressed)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,11 +50,17 @@ func main() {
 }
 ```
 
-### 2. Pipelined Batch Calls (`*Future`)
+### 2. Dedicated Session & Pipelined Batch Calls (`zstd.Open`, `*Future`)
 
-Dispatch multiple blocks concurrently over the shared-memory ring with `CompressAsync` and `DecompressAsync`:
+Open a dedicated shared-memory session via `zstd.Open(ctx)` to dispatch multiple blocks concurrently over the shared-memory ring with `CompressAsync` and `DecompressAsync`:
 
 ```go
+client, err := zstd.Open(ctx)
+if err != nil {
+	return err
+}
+defer client.Close()
+
 futures := make([]zstd.CompressFuture, len(blocks))
 for i, block := range blocks {
 	dst := make([]byte, zstd.CompressBound(uint64(len(block))))
@@ -122,7 +104,7 @@ rem, out, consumed, err := client.CompressStream2Flat(cctx, dstBuf, chunk, zstd.
 
 ## Public API Summary
 
-### Session & Pool (`package zstd`)
+### Top-Level Zero-Config & Session Management (`package zstd`)
 
 ```go
 const (
@@ -130,10 +112,20 @@ const (
 	ZstdVersionNumber = 10507
 )
 
+// Zero-config one-shot helpers (auto-starts embedded zstd_server on first call)
+func Compress(dst, src []byte, compressionLevel int32) ([]byte, error)
+func Decompress(dst, src []byte) ([]byte, error)
+
+// Auto-launched client sessions and managed server helpers
+func Open(ctx context.Context) (*Client, error)
+func OpenWith(ctx context.Context, opts rt.Options) (*Client, error)
+func StartServer(ctx context.Context) (*launch.Server, error)
+func ServerBinary() (path string, hash secureexec.Hash, err error)
+
+// Explicit listener dialing & pooling
 func DefaultOptions() rt.Options
 func ExpectedHash(goos, goarch string) (secureexec.Hash, bool)
 func CompressBound(srcSize uint64) uint64
-
 func Dial(ctx context.Context, name string, opts rt.Options) (*Client, error)
 func NewPool(name string, opts rt.Options, max int) *rt.Pool[*Client]
 func (c *Client) Close() error
