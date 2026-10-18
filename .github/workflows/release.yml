@@ -34,6 +34,9 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout HQQ core
+        shell: bash
+        run: git clone --depth 1 https://github.com/gosuda/HQQ.git ../HQQ
       - name: Build zstd_server (${{ matrix.goos }}/${{ matrix.goarch }})
         shell: bash
         run: |
