@@ -179,7 +179,7 @@ func (p *BulkProcessor) Decompress(dst, src []byte) ([]byte, error)
 
 ```go
 const (
-	Version           = "v0.2.10507"
+	Version           = "v0.3.10507"
 	ZstdVersionNumber = 10507
 )
 
