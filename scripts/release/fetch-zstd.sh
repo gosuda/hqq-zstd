@@ -140,7 +140,7 @@ stage=$dest/.stage-$$
 rm -rf "$stage"
 mkdir "$stage"
 trap 'rm -rf "$stage"' EXIT
-tar -xzf "$tgz" -C "$stage"
+tar -xzf "$tgz" -C "$stage" "$base/lib" "$base/LICENSE"
 [ -d "$stage/$base" ] || die "archive does not contain $base/"
 for f in lib/zstd.h lib/zstd_errors.h lib/compress/zstd_compress.c lib/decompress/zstd_decompress.c; do
 	[ -f "$stage/$base/$f" ] || die "missing $f in $tgz"
