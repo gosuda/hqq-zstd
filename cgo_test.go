@@ -95,7 +95,7 @@ func TestContextCompressMatchesInProcessLibrary(t *testing.T) {
 	}
 	for i, size := range []int{0, 63, 5000, 200_000, 3 << 20} {
 		src := textData(size, uint64(50+i))
-		bound := zstd.CompressBound(uint64(size))
+		bound := zstd.CompressBound(size)
 		got, err := c.CompressCCtx(cctx, make([]byte, bound), src, 5)
 		if err != nil {
 			t.Fatal(err)
@@ -130,7 +130,7 @@ func TestStreamFramesMatchInProcessLibrary(t *testing.T) {
 	c := newClient(t)
 	src := textData(3<<20, 61)
 	chunks := splitChunks(src, 1, 100_000, 7, 4096, 700_000, 65_536, 65_537)
-	capacity := int(zstd.CompressBound(uint64(maxLen(chunks)))) + 64
+	capacity := zstd.CompressBound(maxLen(chunks)) + 64
 
 	cctx, dctx := mustCCtx(t, c), mustDCtx(t, c)
 	if _, err := c.CCtxSetParameter(cctx, zstd.ZSTD_c_compressionLevel, 3); err != nil {

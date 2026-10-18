@@ -38,7 +38,7 @@ type compressSlot struct {
 func newPipelinedCompressor(c *zstd.Client, cctx zstd.CCtx, depth, maxChunk int, emit func([]byte) error) *pipelinedCompressor {
 	p := &pipelinedCompressor{c: c, cctx: cctx, emit: emit, slots: make([]compressSlot, depth)}
 	for i := range p.slots {
-		p.slots[i].dst = make([]byte, zstd.CompressBound(uint64(maxChunk))+64)
+		p.slots[i].dst = make([]byte, zstd.CompressBound(maxChunk)+64)
 	}
 	return p
 }

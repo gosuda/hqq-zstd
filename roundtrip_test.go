@@ -25,7 +25,7 @@ var ref *reference
 // compressAll compresses src into a buffer of the documented bound.
 func compressAll(t testing.TB, c *zstd.Client, src []byte, level int32) []byte {
 	t.Helper()
-	dst := make([]byte, zstd.CompressBound(uint64(len(src))))
+	dst := make([]byte, zstd.CompressBound(len(src)))
 	frame, err := c.Compress(dst, src, level)
 	if err != nil {
 		t.Fatalf("Compress(%d bytes, level %d): %v", len(src), level, err)
@@ -42,7 +42,7 @@ func frameHeader(frame []byte) []byte {
 func roundTrip(t *testing.T, c *zstd.Client, src []byte, level int32) []byte {
 	t.Helper()
 	frame := compressAll(t, c, src, level)
-	if bound := zstd.CompressBound(uint64(len(src))); uint64(len(frame)) > bound {
+	if bound := zstd.CompressBound(len(src)); len(frame) > bound {
 		t.Fatalf("frame is %d bytes, above the bound %d", len(frame), bound)
 	}
 	size, err := c.GetFrameContentSize(frameHeader(frame))
@@ -66,7 +66,7 @@ func compareReference(t *testing.T, src, frame []byte, level int) {
 	if ref == nil {
 		return
 	}
-	want, err := ref.Compress(make([]byte, zstd.CompressBound(uint64(len(src)))), src, level)
+	want, err := ref.Compress(make([]byte, zstd.CompressBound(len(src))), src, level)
 	if err != nil {
 		t.Fatalf("reference Compress: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestCompressBoundMatchesLibrary(t *testing.T) {
 		if err != nil {
 			t.Fatalf("CompressBound(%d): %v", n, err)
 		}
-		if want := zstd.CompressBound(n); got != want {
+		if want := uint64(zstd.CompressBound(int(n))); got != want {
 			t.Errorf("server ZSTD_compressBound(%d) = %d, local formula = %d", n, got, want)
 		}
 		if ref != nil {
@@ -226,7 +226,7 @@ func TestSmallFramesAndFewBuffers(t *testing.T) {
 		for i := range n {
 			srcs[i] = textData(size, uint64(80+i))
 			var err error
-			if futs[i], err = c.CompressAsync(make([]byte, zstd.CompressBound(uint64(size))), srcs[i], 1); err != nil {
+			if futs[i], err = c.CompressAsync(make([]byte, zstd.CompressBound(size)), srcs[i], 1); err != nil {
 				t.Fatalf("%d bytes: issue %d: %v", size, i, err)
 			}
 		}
@@ -245,7 +245,7 @@ func TestSmallFramesAndFewBuffers(t *testing.T) {
 
 func TestZeroConfigAutoLaunch(t *testing.T) {
 	src := textData(32_768, 999)
-	compressed, err := zstd.Compress(nil, src, 3)
+	compressed, err := zstd.Compress(nil, src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,6 +255,77 @@ func TestZeroConfigAutoLaunch(t *testing.T) {
 	}
 	if !bytes.Equal(restored, src) {
 		t.Fatalf("restored %d bytes != src %d bytes", len(restored), len(src))
+	}
+
+	// DecompressInto with sufficient buffer and too-small buffer:
+	dst := make([]byte, len(src))
+	n, err := zstd.DecompressInto(dst, compressed)
+	if err != nil || n != len(src) || !bytes.Equal(dst[:n], src) {
+		t.Fatalf("DecompressInto = %d, %v", n, err)
+	}
+	_, err = zstd.DecompressInto(make([]byte, 10), compressed)
+	if !zstd.IsDstSizeTooSmallError(err) {
+		t.Fatalf("IsDstSizeTooSmallError(%v) = false, want true", err)
+	}
+
+	// Reusable Ctx:
+	zctx := zstd.NewCtx()
+	c2, err := zctx.CompressLevel(nil, src, zstd.BestSpeed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2, err := zctx.Decompress(make([]byte, 8), c2) // too small dst triggers reallocation
+	if err != nil || !bytes.Equal(r2, src) {
+		t.Fatalf("Ctx.Decompress: %v", err)
+	}
+
+	// BulkProcessor with dictionary:
+	if _, err := zstd.NewBulkProcessor(nil, zstd.DefaultCompression); err != zstd.ErrEmptyDictionary {
+		t.Fatalf("NewBulkProcessor(nil) err = %v, want ErrEmptyDictionary", err)
+	}
+	dict := textData(4096, 1234)
+	bp, err := zstd.NewBulkProcessor(dict, zstd.DefaultCompression)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c3, err := bp.Compress(nil, src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r3, err := bp.Decompress(nil, c3)
+	if err != nil || !bytes.Equal(r3, src) {
+		t.Fatalf("BulkProcessor roundtrip: %v", err)
+	}
+
+	// Streaming Writer & Reader (with dictionary and Flush):
+	var buf bytes.Buffer
+	zw := zstd.NewWriterLevelDict(&buf, zstd.BestSpeed, dict)
+	if err := zw.SetNbWorkers(2); err != zstd.ErrNoParallelSupport {
+		t.Fatalf("SetNbWorkers(2) = %v, want ErrNoParallelSupport", err)
+	}
+	if _, err := zw.Write(src[:10_000]); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := zw.Write(src[10_000:]); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	zr := zstd.NewReaderDict(&buf, dict)
+	var readBuf bytes.Buffer
+	if _, err := readBuf.ReadFrom(zr); err != nil {
+		t.Fatal(err)
+	}
+	if err := zr.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(readBuf.Bytes(), src) {
+		t.Fatalf("Writer/Reader roundtrip mismatch (%d vs %d bytes)", readBuf.Len(), len(src))
 	}
 
 	cl, err := zstd.Open(context.Background())

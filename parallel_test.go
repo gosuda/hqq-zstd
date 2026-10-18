@@ -55,7 +55,7 @@ func TestPoolGoroutinesShareSessionsWithoutInterference(t *testing.T) {
 					errs <- fmt.Errorf("goroutine %d: get: %w", g, err)
 					return
 				}
-				frame, err := c.Compress(make([]byte, zstd.CompressBound(uint64(size))), src, level)
+				frame, err := c.Compress(make([]byte, zstd.CompressBound(size)), src, level)
 				var out []byte
 				if err == nil {
 					out, err = c.Decompress(make([]byte, size), frame)
@@ -119,7 +119,7 @@ func pipelinedRound(c *zstd.Client, g, depth int) error {
 	futs := make([]zstd.CompressCCtxFuture, depth)
 	for i := range depth {
 		srcs[i] = textData(20_000+i*7000, uint64(g*100+i))
-		dsts[i] = make([]byte, zstd.CompressBound(uint64(len(srcs[i]))))
+		dsts[i] = make([]byte, zstd.CompressBound(len(srcs[i])))
 		if futs[i], err = c.CompressCCtxAsync(cctx, dsts[i], srcs[i], 3); err != nil {
 			return fmt.Errorf("session %d: issue %d: %w", g, i, err)
 		}
@@ -160,7 +160,7 @@ func TestWaitInAnyOrder(t *testing.T) {
 	futs := make([]zstd.CompressFuture, n)
 	for i := range n {
 		srcs[i] = textData(3000+i*1111, uint64(i))
-		dsts[i] = make([]byte, zstd.CompressBound(uint64(len(srcs[i]))))
+		dsts[i] = make([]byte, zstd.CompressBound(len(srcs[i])))
 		var err error
 		if futs[i], err = c.CompressAsync(dsts[i], srcs[i], 1); err != nil {
 			t.Fatal(err)

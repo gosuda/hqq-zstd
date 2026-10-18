@@ -52,7 +52,7 @@ func checksummedFrame(t testing.TB, c *zstd.Client, src []byte) []byte {
 	if _, err := c.CCtxSetParameter(cctx, zstd.ZSTD_c_checksumFlag, 1); err != nil {
 		t.Fatal(err)
 	}
-	dst := make([]byte, zstd.CompressBound(uint64(len(src)))+8)
+	dst := make([]byte, zstd.CompressBound(len(src))+8)
 	hint, frame, used, err := c.CompressStream2Flat(cctx, dst, src, zstd.ZSTD_e_end)
 	if err != nil || hint != 0 || used != uint64(len(src)) {
 		t.Fatalf("CompressStream2Flat: hint %d, consumed %d of %d, %v", hint, used, len(src), err)
@@ -153,7 +153,7 @@ func TestLevelsOutsideTheLibraryRangeAreClamped(t *testing.T) {
 				t.Errorf("level %d produced a different frame than the clamped level %d", tc.level, tc.same)
 			}
 			if ref != nil {
-				inproc, err := ref.Compress(make([]byte, zstd.CompressBound(uint64(len(src)))), src, int(tc.level))
+				inproc, err := ref.Compress(make([]byte, zstd.CompressBound(len(src))), src, int(tc.level))
 				if err != nil || !bytes.Equal(got, inproc) {
 					t.Errorf("in-process library at level %d: %v, equal %v", tc.level, err, bytes.Equal(got, inproc))
 				}
@@ -261,7 +261,7 @@ func TestFrameContentSizeResultsAreNotFailures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dst := make([]byte, zstd.CompressBound(uint64(len(src)))+64)
+	dst := make([]byte, zstd.CompressBound(len(src))+64)
 	_, part1, _, err := c.CompressStream2Flat(cctx, dst, src[:100], zstd.ZSTD_e_continue)
 	if err != nil {
 		t.Fatal(err)
@@ -314,7 +314,7 @@ func TestServerMessageLimitIsGrantedAndEnforced(t *testing.T) {
 		t.Fatalf("granted max message = %d, want 1 MiB", got)
 	}
 	big := textData(2<<20, 9)
-	_, err := c.Compress(make([]byte, zstd.CompressBound(uint64(len(big)))), big, 1)
+	_, err := c.Compress(make([]byte, zstd.CompressBound(len(big))), big, 1)
 	if !errors.Is(err, rt.ErrInvalidArg) || errors.Is(err, rt.ErrOutcomeUnknown) {
 		t.Fatalf("2 MiB request against a 1 MiB limit: error = %v, want rt.ErrInvalidArg with a known outcome", err)
 	}

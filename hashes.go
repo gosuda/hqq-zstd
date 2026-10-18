@@ -13,7 +13,7 @@ const (
 // zstd_server binary published with this module version.
 var ReleaseHashes = map[string]secureexec.Hash{
 	"darwin/amd64":  mustHash("f8e1b416ca7bb184c83800e30aa17e57cdefa464cf1267625b2923d925e2b6c0"),
-	"darwin/arm64":  mustHash("63ef6166d9a27d19d3810b6b307fbd7d00fe204b4cca3b90f5c2f49b0bda430c"),
+	"darwin/arm64":  mustHash("398ee13b529c849a6406b17f86dcd444fe630d74521d9986e72a1d6533fec503"),
 	"linux/amd64":   mustHash("c24140b14a8c513e2c918e742c964f47d328ed9c95fcb18d21249d0e0a4a6c47"),
 	"linux/arm64":   mustHash("a9ecf66c244bb94858d3ba2c5f8c86525231ee6f4070215f4f364c3fd3c46473"),
 	"windows/amd64": mustHash("79ea7be4a397cc9cc699980170707ce043191b6f02bc0e36b34bf36a077d69a8"),

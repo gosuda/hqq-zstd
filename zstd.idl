@@ -18,6 +18,8 @@ include "zstd.h";
 const ZSTD_MAX_SRC: u32 = 536870912;
 // Largest destination buffer: 768 MiB, which covers ZSTD_compressBound(ZSTD_MAX_SRC).
 const ZSTD_MAX_DST: u32 = 805306368;
+// Largest dictionary buffer: 32 MiB.
+const ZSTD_MAX_DICT: u32 = 33554432;
 // ZSTD_FRAMEHEADERSIZE_MAX: the bytes of a frame that ZSTD_getFrameContentSize reads.
 const ZSTD_FRAMEHEADER_MAX: u32 = 18;
 
@@ -52,6 +54,12 @@ handle CCtx destroy ZSTD_freeCCtx;
 
 @c("ZSTD_DCtx *")
 handle DCtx destroy ZSTD_freeDCtx;
+
+@c("ZSTD_CDict *")
+handle CDict destroy ZSTD_freeCDict;
+
+@c("ZSTD_DDict *")
+handle DDict destroy ZSTD_freeDDict;
 
 fn ZSTD_versionNumber() -> u32;
 fn ZSTD_versionString() -> str<=32;
@@ -100,6 +108,38 @@ fn ZSTD_compressCCtx(cctx: CCtx,
 fn ZSTD_decompressDCtx(dctx: DCtx,
                        out dst: bytes<=ZSTD_MAX_SRC, dstCapacity: size @len_of(dst),
                        src: bytes<=ZSTD_MAX_DST, compressedSize: size @len_of(src)) -> size @len_of(dst);
+
+// Pre-digested dictionaries and per-context dictionary loading.
+@error(null)
+fn ZSTD_createCDict(dictBuffer: bytes<=ZSTD_MAX_DICT, dictSize: size @len_of(dictBuffer),
+                    compressionLevel: i32) -> CDict;
+
+@error(status, ok(0), detail(ZSTD_getErrorName, ret))
+fn ZSTD_freeCDict(cdict: CDict) -> size;
+
+@error(predicate(ZSTD_isError), detail(ZSTD_getErrorName, ret))
+fn ZSTD_compress_usingCDict(cctx: CCtx,
+                            out dst: bytes<=ZSTD_MAX_DST, dstCapacity: size @len_of(dst),
+                            src: bytes<=ZSTD_MAX_SRC, srcSize: size @len_of(src),
+                            cdict: CDict) -> size @len_of(dst);
+
+@error(null)
+fn ZSTD_createDDict(dictBuffer: bytes<=ZSTD_MAX_DICT, dictSize: size @len_of(dictBuffer)) -> DDict;
+
+@error(status, ok(0), detail(ZSTD_getErrorName, ret))
+fn ZSTD_freeDDict(ddict: DDict) -> size;
+
+@error(predicate(ZSTD_isError), detail(ZSTD_getErrorName, ret))
+fn ZSTD_decompress_usingDDict(dctx: DCtx,
+                              out dst: bytes<=ZSTD_MAX_SRC, dstCapacity: size @len_of(dst),
+                              src: bytes<=ZSTD_MAX_DST, srcSize: size @len_of(src),
+                              ddict: DDict) -> size @len_of(dst);
+
+@error(predicate(ZSTD_isError), detail(ZSTD_getErrorName, ret))
+fn ZSTD_CCtx_loadDictionary(cctx: CCtx, dict: bytes<=ZSTD_MAX_DICT, dictSize: size @len_of(dict)) -> size;
+
+@error(predicate(ZSTD_isError), detail(ZSTD_getErrorName, ret))
+fn ZSTD_DCtx_loadDictionary(dctx: DCtx, dict: bytes<=ZSTD_MAX_DICT, dictSize: size @len_of(dict)) -> size;
 
 // The interceptor (server/zstd_hooks.c) allows compressionLevel, windowLog, strategy and the three
 // flags, refuses every other parameter with E_DENIED, and refuses a windowLog above 27, the largest

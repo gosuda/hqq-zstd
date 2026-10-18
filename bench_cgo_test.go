@@ -66,7 +66,7 @@ func TestCgoBenchmarkCallsAgreeWithServer(t *testing.T) {
 	c := newClient(t)
 	for _, size := range []int{64, 4 << 10, 1 << 20} {
 		src := textData(size, uint64(size))
-		got, err := cgozstd.Compress(make([]byte, zstd.CompressBound(uint64(size))), src, benchLevel)
+		got, err := cgozstd.Compress(make([]byte, zstd.CompressBound(size)), src, benchLevel)
 		if err != nil {
 			t.Fatal(err)
 		}

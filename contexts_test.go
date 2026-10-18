@@ -39,7 +39,7 @@ func TestContextCallsMatchOneShot(t *testing.T) {
 	for i, size := range []int{5000, 0, 70_000, 1, 300_000, 5000} {
 		level := int32(1 + 2*i)
 		src := textData(size, uint64(100+i))
-		bound := make([]byte, zstd.CompressBound(uint64(size)))
+		bound := make([]byte, zstd.CompressBound(size))
 		got, err := c.CompressCCtx(cctx, bound, src, level)
 		if err != nil {
 			t.Fatalf("CompressCCtx(%d bytes, level %d): %v", size, level, err)
@@ -72,7 +72,7 @@ func TestParametersApplyToStreamsNotToCompressCCtx(t *testing.T) {
 	if _, err := c.CCtxSetParameter(cctx, zstd.ZSTD_c_checksumFlag, 1); err != nil {
 		t.Fatal(err)
 	}
-	ignored, err := c.CompressCCtx(cctx, make([]byte, zstd.CompressBound(uint64(len(src)))), src, 3)
+	ignored, err := c.CompressCCtx(cctx, make([]byte, zstd.CompressBound(len(src))), src, 3)
 	if err != nil || !bytes.Equal(ignored, plain) {
 		t.Errorf("ZSTD_compressCCtx honored a context parameter: %d bytes against %d, %v", len(ignored), len(plain), err)
 	}
@@ -128,7 +128,7 @@ func TestPledgedSizeIsCheckedByTheLibrary(t *testing.T) {
 func TestHandleLifecycle(t *testing.T) {
 	c := newClient(t)
 	src := textData(2000, 14)
-	dst := make([]byte, zstd.CompressBound(uint64(len(src))))
+	dst := make([]byte, zstd.CompressBound(len(src)))
 
 	cctx := mustCCtx(t, c)
 	if _, err := c.CompressCCtx(cctx, dst, src, 3); err != nil {
@@ -213,7 +213,7 @@ func growBy(t *testing.T, srv *launch.Server) (*zstd.Client, []zstd.CCtx, int64)
 	stillWorks(t, c)
 	before := rssKiB(t, srv.PID())
 	src := textData(1<<20, 15)
-	dst := make([]byte, zstd.CompressBound(uint64(len(src))))
+	dst := make([]byte, zstd.CompressBound(len(src)))
 	var held []zstd.CCtx
 	for range 6 {
 		h := mustCCtx(t, c)

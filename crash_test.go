@@ -102,7 +102,7 @@ func TestServerKilledWithCallsInFlight(t *testing.T) {
 	futs := make([]zstd.CompressFuture, calls)
 	for i := range calls {
 		var err error
-		dst := make([]byte, zstd.CompressBound(uint64(len(src))))
+		dst := make([]byte, zstd.CompressBound(len(src)))
 		if futs[i], err = c.CompressAsync(dst, src, 19); err != nil {
 			t.Fatal(err)
 		}

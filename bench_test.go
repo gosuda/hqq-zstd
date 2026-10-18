@@ -183,7 +183,7 @@ func (versionCall) async(c *zstd.Client, _ []byte) (func() (int, error), error) 
 func (cs *benchCase) plan() (call caller, dstLen, want int) {
 	switch cs.op {
 	case opCompress:
-		return compressCall{cs.src}, int(zstd.CompressBound(uint64(cs.size))), len(cs.frame)
+		return compressCall{cs.src}, zstd.CompressBound(cs.size), len(cs.frame)
 	case opDecompress:
 		return decompressCall{cs.frame}, cs.size, cs.size
 	}
