@@ -16,7 +16,7 @@ var ReleaseHashes = map[string]secureexec.Hash{
 	"darwin/arm64":  mustHash("7649b1b45dacd934cde8149f35f4fcc3937f6486fbac23ce976466719b3752bb"),
 	"linux/amd64":   mustHash("b9ed44f83b962ecc135ceb32139476597603f7e1eec09cf685c49fc2b4233834"),
 	"linux/arm64":   mustHash("14241982f6ee31d2b4a073425473c61726a85871347c996deecfa22a3bdcfda0"),
-	"windows/amd64": mustHash("008ca46ac5a466679d317971f0fb76f9e0601fdb71d169a7e767521f856f12a5"),
+	"windows/amd64": mustHash("028ce38effd3accee48cfe173a0cfea57e3b702fed7b1037c100d20939d6b5b8"),
 	"windows/arm64": mustHash("dd71d248658937d48a782bb42260f6f7f517215ff61b460403ddae923e0cff42"),
 }
 
