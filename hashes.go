@@ -12,12 +12,12 @@ const (
 // ReleaseHashes maps "<GOOS>/<GOARCH>" to the SHA-256 digest of the prebuilt
 // zstd_server binary published with this module version.
 var ReleaseHashes = map[string]secureexec.Hash{
-	"darwin/amd64":  mustHash("f8e1b416ca7bb184c83800e30aa17e57cdefa464cf1267625b2923d925e2b6c0"),
-	"darwin/arm64":  mustHash("398ee13b529c849a6406b17f86dcd444fe630d74521d9986e72a1d6533fec503"),
-	"linux/amd64":   mustHash("c24140b14a8c513e2c918e742c964f47d328ed9c95fcb18d21249d0e0a4a6c47"),
-	"linux/arm64":   mustHash("a9ecf66c244bb94858d3ba2c5f8c86525231ee6f4070215f4f364c3fd3c46473"),
-	"windows/amd64": mustHash("79ea7be4a397cc9cc699980170707ce043191b6f02bc0e36b34bf36a077d69a8"),
-	"windows/arm64": mustHash("a5b94878d208849934d739c5bb5eaa64a98864e143df6ca6cac0e34f06cfb428"),
+	"darwin/amd64":  mustHash("90eeb7cdbc08a2018722f4965cd9e3d9c387e97b9b4c7910f2d2e1bde24c6cdb"),
+	"darwin/arm64":  mustHash("7649b1b45dacd934cde8149f35f4fcc3937f6486fbac23ce976466719b3752bb"),
+	"linux/amd64":   mustHash("b9ed44f83b962ecc135ceb32139476597603f7e1eec09cf685c49fc2b4233834"),
+	"linux/arm64":   mustHash("14241982f6ee31d2b4a073425473c61726a85871347c996deecfa22a3bdcfda0"),
+	"windows/amd64": mustHash("008ca46ac5a466679d317971f0fb76f9e0601fdb71d169a7e767521f856f12a5"),
+	"windows/arm64": mustHash("dd71d248658937d48a782bb42260f6f7f517215ff61b460403ddae923e0cff42"),
 }
 
 // ExpectedHash returns the pinned SHA-256 digest of zstd_server for goos/goarch.
