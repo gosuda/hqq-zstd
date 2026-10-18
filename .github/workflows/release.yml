@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            runner: ubuntu-24.04
+          - goos: linux
+            goarch: arm64
+            runner: ubuntu-24.04-arm
+          - goos: darwin
+            goarch: arm64
+            runner: macos-14
+          - goos: darwin
+            goarch: amd64
+            runner: macos-13
+          - goos: windows
+            goarch: amd64
+            runner: windows-2022
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build zstd_server (${{ matrix.goos }}/${{ matrix.goarch }})
+        shell: bash
+        run: |
+          zdir=$(scripts/release/fetch-zstd.sh)
+          cmake -S server -B /tmp/hqq-zstd-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DHQQ_ZSTD_DIR="$zdir"
+          cmake --build /tmp/hqq-zstd-build
+          mkdir -p dist
+          ext=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then ext=".exe"; fi
+          cp "/tmp/hqq-zstd-build/zstd_server${ext}" "dist/zstd_server_${{ matrix.goos }}_${{ matrix.goarch }}${ext}"
+      - name: Attest SLSA Build Provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'dist/zstd_server_*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
