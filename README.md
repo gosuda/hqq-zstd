@@ -6,6 +6,14 @@
 go get gosuda.org/hqq-zstd
 ```
 
+## Supported Platforms
+
+| OS | Architectures | Prebuilt `zstd_server` Release Asset |
+| :--- | :--- | :--- |
+| **Linux** | `amd64`, `arm64` | `zstd_server_linux_amd64`, `zstd_server_linux_arm64` |
+| **macOS** | `arm64` (Apple Silicon), `amd64` | `zstd_server_darwin_arm64`, `zstd_server_darwin_amd64` |
+| **Windows** | `amd64`, `arm64` | `zstd_server_windows_amd64.exe` (`arm64` via source build) |
+
 ---
 
 ## Quickstart
