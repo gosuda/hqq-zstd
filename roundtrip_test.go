@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gosuda.org/hqq-zstd"
+	"gosuda.org/zstd"
 	"gosuda.org/hqq/bindgen/rt"
 )
 

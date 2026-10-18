@@ -1,11 +1,11 @@
-# hqq-zstd (`gosuda.org/hqq-zstd`)
+# hqq-zstd (`gosuda.org/zstd`)
 
-`gosuda.org/hqq-zstd` is a **zero-`cgo` (`CGO_ENABLED=0`) Zstandard (`libzstd`) library for Go** powered by HQQ shared-memory IPC, designed as a drop-in replacement for [`github.com/DataDog/zstd`](https://pkg.go.dev/github.com/DataDog/zstd) plus low-level pipelined async RPC (`*zstd.Client`). Your Go binary compiles without linking C objects, while executing the official C `libzstd` (`1.5.7`) compressor and decompressor in an isolated shared-memory worker process (`zstd_server`).
+`gosuda.org/zstd` is a **zero-`cgo` (`CGO_ENABLED=0`) Zstandard (`libzstd`) library for Go** powered by HQQ shared-memory IPC, designed as a drop-in replacement for [`github.com/DataDog/zstd`](https://pkg.go.dev/github.com/DataDog/zstd) plus low-level pipelined async RPC (`*zstd.Client`). Your Go binary compiles without linking C objects, while executing the official C `libzstd` (`1.5.7`) compressor and decompressor in an isolated shared-memory worker process (`zstd_server`).
 
 SLSA-attested prebuilt `zstd_server` binaries are embedded per target platform (`//go:build` + `//go:embed`), extracted to the user cache on first use, verified against pinned SHA-256 digests via `gosuda.org/hqq/secureexec`, and bound to the Go parent process lifetime via `--parent-stdin`. No external binary download or C toolchain is required.
 
 ```bash
-go get gosuda.org/hqq-zstd
+go get gosuda.org/zstd
 ```
 
 ## Supported Platforms
@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"log"
 
-	"gosuda.org/hqq-zstd"
+	"gosuda.org/zstd"
 )
 
 func main() {
@@ -179,7 +179,7 @@ func (p *BulkProcessor) Decompress(dst, src []byte) ([]byte, error)
 
 ```go
 const (
-	Version           = "v0.1.10507"
+	Version           = "v0.2.10507"
 	ZstdVersionNumber = 10507
 )
 

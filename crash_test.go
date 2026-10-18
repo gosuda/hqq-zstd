@@ -9,7 +9,7 @@ import (
 	"time"
 
 	hqq "gosuda.org/hqq"
-	"gosuda.org/hqq-zstd"
+	"gosuda.org/zstd"
 	"gosuda.org/hqq/bindgen/rt"
 	"gosuda.org/hqq/launch"
 )

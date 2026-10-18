@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"sync"
 
-	"gosuda.org/hqq-zstd/internal/embedded"
+	"gosuda.org/zstd/internal/embedded"
 	"gosuda.org/hqq/bindgen/rt"
 	"gosuda.org/hqq/launch"
 	"gosuda.org/hqq/secureexec"

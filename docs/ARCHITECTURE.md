@@ -1,6 +1,6 @@
-# Architecture and Internals (`gosuda.org/hqq-zstd`)
+# Architecture and Internals (`gosuda.org/zstd`)
 
-This document describes the shared-memory session geometry, credit flow control, exposed IDL surface, security interceptors, error mappings, and `cgo` comparison benchmarks of `gosuda.org/hqq-zstd`.
+This document describes the shared-memory session geometry, credit flow control, exposed IDL surface, security interceptors, error mappings, and `cgo` comparison benchmarks of `gosuda.org/zstd`.
 
 ---
 
@@ -11,7 +11,7 @@ Each `*zstd.Client` owns an HQQ `StandardLink` shared-memory session backed by a
 ```mermaid
 flowchart LR
     subgraph Go["Go Application Process (CGO_ENABLED=0)"]
-        APP["Caller / rt.Pool[*zstd.Client]"] --> CLI["gosuda.org/hqq-zstd\n(Generated *zstd.Client)"]
+        APP["Caller / rt.Pool[*zstd.Client]"] --> CLI["gosuda.org/zstd\n(Generated *zstd.Client)"]
     end
 
     subgraph SHM["HQQ Shared Memory (64 KiB x 64 Slots / Dir)"]

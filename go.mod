@@ -1,4 +1,4 @@
-module gosuda.org/hqq-zstd
+module gosuda.org/zstd
 
 go 1.24.0
 

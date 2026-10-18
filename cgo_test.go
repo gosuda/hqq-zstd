@@ -7,8 +7,8 @@ import (
 	"errors"
 	"testing"
 
-	"gosuda.org/hqq-zstd"
-	"gosuda.org/hqq-zstd/internal/cgozstd"
+	"gosuda.org/zstd"
+	"gosuda.org/zstd/internal/cgozstd"
 	"gosuda.org/hqq/bindgen/rt"
 )
 

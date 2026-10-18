@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"gosuda.org/hqq-zstd"
+	"gosuda.org/zstd"
 	"gosuda.org/hqq/bindgen/rt"
 	"gosuda.org/hqq/launch"
 	"gosuda.org/hqq/secureexec"

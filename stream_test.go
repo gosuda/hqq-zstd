@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"gosuda.org/hqq-zstd"
+	"gosuda.org/zstd"
 )
 
 // pipelinedCompressor streams chunks through ZSTD_compressStream2 on one context with up to depth
