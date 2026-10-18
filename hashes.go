@@ -19,3 +19,11 @@ func ExpectedHash(goos, goarch string) (secureexec.Hash, bool) {
 	h, ok := ReleaseHashes[goos+"/"+goarch]
 	return h, ok
 }
+
+func mustHash(s string) secureexec.Hash {
+	h, err := secureexec.ParseHash(s)
+	if err != nil {
+		panic(err)
+	}
+	return h
+}
