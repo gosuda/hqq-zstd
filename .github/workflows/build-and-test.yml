@@ -39,15 +39,15 @@ jobs:
             zig_target: aarch64-linux-musl
           - goos: darwin
             goarch: arm64
-            runner: macos-26
+            runner: depot-macos-latest
             zig_target: ''
           - goos: darwin
             goarch: amd64
-            runner: macos-26
+            runner: depot-macos-latest
             zig_target: ''
           - goos: windows
             goarch: amd64
-            runner: windows-2025
+            runner: depot-windows-2025
             zig_target: ''
           - goos: windows
             goarch: arm64
@@ -209,10 +209,10 @@ jobs:
             runner: ubuntu-26.04-arm
             cc: clang-22
           - name: darwin/arm64
-            runner: macos-26
+            runner: depot-macos-latest
             cc: clang
           - name: windows/amd64
-            runner: windows-2025
+            runner: depot-windows-2025
             cc: ''
           - name: windows/arm64
             runner: windows-11-arm
