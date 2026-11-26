@@ -225,7 +225,10 @@ jobs:
 
       - name: Verify release Go cache isolation
         shell: bash
-        run: test -z "$(go env GOCACHEPROG)"
+        run: |
+          set -euo pipefail
+          cache_program=$(go env GOCACHEPROG)
+          test -z "$cache_program"
 
       - name: Install the Linux test compiler
         if: runner.os == 'Linux'
