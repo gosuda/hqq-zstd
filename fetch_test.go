@@ -41,10 +41,19 @@ func TestPinFilesAreConsistent(t *testing.T) {
 		t.Fatal(err)
 	}
 	archive := "zstd-" + version + ".tar.gz"
-	for _, want := range []string{"archive=" + archive, "url=https://github.com/facebook/zstd/releases/download/v" + version + "/" + archive} {
-		if !strings.Contains(string(vdata), want+"\n") {
-			t.Errorf("VERSION lacks the line %q", want)
+	if want := "archive=" + archive; !strings.Contains(string(vdata), want+"\n") {
+		t.Errorf("VERSION lacks the line %q", want)
+	}
+	// Upstream moved from facebook/zstd to meta/zstd with v1.6.0; the pinner
+	// records the asset URL the GitHub API reports, so both hosts are official.
+	matchedURL := false
+	for _, host := range []string{"https://github.com/facebook/zstd", "https://github.com/meta/zstd"} {
+		if strings.Contains(string(vdata), "url="+host+"/releases/download/v"+version+"/"+archive+"\n") {
+			matchedURL = true
 		}
+	}
+	if !matchedURL {
+		t.Errorf("VERSION lacks an official url line for %s (facebook/zstd or meta/zstd)", archive)
 	}
 	sums, err := os.ReadFile(filepath.Join(pins, "SHA256"))
 	if err != nil {
