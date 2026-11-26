@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: build-and-test-${{ inputs.ref || github.ref }}
+  cancel-in-progress: true
+
 env:
   GO_VERSION: '1.27.4'
   ZIG_VERSION: '0.17.1'
