@@ -49,7 +49,7 @@ jobs:
       - name: Restore cached Zstandard source
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/hqq-zstd/zstd-src
+          path: ~/.cache/hqq-zstd
           key: zstd-src-${{ hashFiles('third_party/zstd/VERSION', 'third_party/zstd/SHA256') }}
 
       - name: Select newest Xcode (macOS)
@@ -106,7 +106,7 @@ jobs:
           set -euo pipefail
           "$CC" --version
           go vet ./...
-          eval "$(./build.sh -d "$HOME/.cache/hqq-zstd/zstd-src")"
+          eval "$(TMPDIR="$HOME/.cache/hqq-zstd/tmp" ./build.sh -b "$RUNNER_TEMP/hqq-zstd-build")"
           go test -short -v -race -timeout 10m -tags zstdcgo ./...
 
       - name: Build zstd_server and run Go tests (Windows)
