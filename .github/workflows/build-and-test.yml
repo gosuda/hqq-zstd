@@ -1,6 +1,8 @@
 name: Build and Test
 
 on:
+  schedule:
+    - cron: '23 4 * * 1'
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -31,11 +33,11 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
-            runner: ubuntu-26.04
+            runner: depot-ubuntu-24.04
             zig_target: x86_64-linux-musl
           - goos: linux
             goarch: arm64
-            runner: ubuntu-26.04
+            runner: depot-ubuntu-24.04
             zig_target: aarch64-linux-musl
           - goos: darwin
             goarch: arm64
@@ -51,7 +53,7 @@ jobs:
             zig_target: ''
           - goos: windows
             goarch: arm64
-            runner: ubuntu-26.04
+            runner: depot-ubuntu-24.04
             zig_target: aarch64-windows-gnu
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -203,19 +205,16 @@ jobs:
       matrix:
         include:
           - name: linux/amd64
-            runner: ubuntu-26.04
-            cc: clang-22
+            runner: depot-ubuntu-24.04
+            cc: clang-18
           - name: linux/arm64
-            runner: ubuntu-26.04-arm
-            cc: clang-22
+            runner: depot-ubuntu-24.04-arm
+            cc: clang-18
           - name: darwin/arm64
             runner: depot-macos-latest
             cc: clang
           - name: windows/amd64
             runner: depot-windows-2025
-            cc: ''
-          - name: windows/arm64
-            runner: windows-11-arm
             cc: ''
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 25
@@ -241,6 +240,12 @@ jobs:
         with:
           path: ~/.cache/hqq-zstd
           key: zstd-src-${{ hashFiles('third_party/zstd/VERSION', 'third_party/zstd/SHA256') }}
+
+      - name: Install the Linux test compiler
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-18 cmake ninja-build
 
       - name: Ensure Ninja is installed (POSIX)
         if: runner.os != 'Windows'

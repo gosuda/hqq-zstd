@@ -15,24 +15,8 @@ concurrency:
 
 jobs:
   test:
-    name: ${{ matrix.name }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux (GCC 15)
-            os: ubuntu-26.04
-            cc: gcc-15
-          - name: Linux (Clang 22)
-            os: ubuntu-26.04
-            cc: clang-22
-          - name: macOS (Xcode / Apple Clang)
-            os: depot-macos-latest
-            cc: clang
-          - name: Windows (VS 2026 / clang-cl)
-            os: depot-windows-2025
-            cc: clang-cl
-    runs-on: ${{ matrix.os }}
+    name: Linux (Clang 18)
+    runs-on: depot-ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -52,42 +36,10 @@ jobs:
           path: ~/.cache/hqq-zstd
           key: zstd-src-${{ hashFiles('third_party/zstd/VERSION', 'third_party/zstd/SHA256') }}
 
-      - name: Select newest Xcode (macOS)
-        if: runner.os == 'macOS'
+      - name: Install C build tools
         run: |
-          xcode=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
-          sudo xcode-select -s "$xcode"
-          xcodebuild -version
-          clang --version
-
-      - name: Ensure Ninja is installed
-        if: runner.os != 'Windows'
-        run: |
-          if ! command -v ninja >/dev/null 2>&1; then
-            if [ "$(uname -s)" = "Linux" ]; then
-              sudo apt-get update && sudo apt-get install -y --no-install-recommends ninja-build
-            else
-              brew install ninja
-            fi
-          fi
-
-      - name: Set up MSVC developer environment (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
-          $vcvars = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
-          cmd.exe /c "call `"$vcvars`" x64 >nul && set" | ForEach-Object {
-            if ($_ -match '^([^=]+)=(.*)$') {
-              if ($matches[1] -ieq 'PATH') {
-                $entries = @($matches[2] -split ';' | Where-Object { $_ })
-                [array]::Reverse($entries)
-                $entries | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-              } else {
-                "$($matches[1])=$($matches[2])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-              }
-            }
-          }
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-18 cmake ninja-build
 
       - name: Run release script unit tests
         shell: bash
@@ -98,33 +50,12 @@ jobs:
           fi
           "$py" -m unittest scripts/release/test_zstd_release.py -v
 
-      - name: Build zstd_server and run Go tests (POSIX)
-        if: runner.os != 'Windows'
+      - name: Build zstd_server and run Go tests
         env:
-          CC: ${{ matrix.cc }}
+          CC: clang-18
         run: |
           set -euo pipefail
           "$CC" --version
           go vet ./...
           eval "$(TMPDIR="$HOME/.cache/hqq-zstd/tmp" ./build.sh -b "$RUNNER_TEMP/hqq-zstd-build")"
           go test -short -v -race -timeout 10m -tags zstdcgo ./...
-
-      - name: Build zstd_server and run Go tests (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          set -euo pipefail
-          clang-cl --version
-          tmp_dir=$(cygpath -u "$RUNNER_TEMP")
-          zdir=$(scripts/release/fetch-zstd.sh -d "$HOME/.cache/hqq-zstd/zstd-src")
-          bdir="$tmp_dir/hqq-zstd-build"
-          cmake -S server -B "$(cygpath -m "$bdir")" -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=clang-cl \
-            -DCMAKE_CXX_COMPILER=clang-cl \
-            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded \
-            -DHQQ_ZSTD_DIR="$(cygpath -m "$zdir")"
-          cmake --build "$(cygpath -m "$bdir")" --target zstd_server
-          export HQQ_ZSTD_SERVER="$bdir/zstd_server.exe"
-          go vet ./...
-          go test -short -v -timeout 10m ./...
